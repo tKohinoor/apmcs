@@ -1,3 +1,4 @@
+import sprintRoutes from "./routes/sprintRoutes.js";
 import itemRoutes from "./routes/itemRoutes.js";
 import projectRoutes from "./routes/projectRoutes.js";
 import express from "express";
@@ -17,6 +18,7 @@ app.get("/api/v1/health", (req, res) => {
 
 app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/projects/:projectId/items", itemRoutes);
+app.use("/api/v1/projects/:projectId/sprints", sprintRoutes);
 app.use("/api/v1/projects", projectRoutes);
 
 // Catches any error thrown in the code above

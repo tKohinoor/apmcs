@@ -1,3 +1,4 @@
+import Sprint from "../models/Sprint.js";
 import mongoose from "mongoose";
 import Project from "../models/Project.js";
 import WorkItem from "../models/WorkItem.js";
@@ -11,6 +12,7 @@ const UPDATABLE = [
   "storyPoints",
   "assignee",
   "epic",
+  "sprint",
 ];
 
 const isMember = (project, userId) =>
@@ -35,6 +37,18 @@ async function checkRelations(project, { assignee, epic }) {
   return null;
 }
 
+// Returns an error message, or null if the sprint choice is valid
+async function checkSprint(project, sprintId, itemType) {
+  if (!sprintId) return null;
+  if (!mongoose.isValidObjectId(sprintId)) return "Invalid sprint";
+  if (itemType === "epic") return "Epics cannot be added to a sprint";
+
+  const sprint = await Sprint.findOne({ _id: sprintId, project: project._id });
+  if (!sprint) return "Sprint not found in this project";
+  if (sprint.state === "closed") return "Cannot add items to a closed sprint";
+  return null;
+}
+
 function validationMessage(err) {
   return Object.values(err.errors)[0].message;
 }
@@ -48,6 +62,11 @@ export async function listItems(req, res) {
   if (req.query.assignee && mongoose.isValidObjectId(req.query.assignee)) {
     filter.assignee = req.query.assignee;
   }
+    if (req.query.sprint === "backlog") {
+    filter.sprint = null;
+  } else if (req.query.sprint && mongoose.isValidObjectId(req.query.sprint)) {
+    filter.sprint = req.query.sprint;
+  }
 
   const items = await WorkItem.find(filter)
     .sort({ rank: 1 })
@@ -58,7 +77,7 @@ export async function listItems(req, res) {
 }
 
 export async function createItem(req, res) {
-  const { title, description, type, priority, storyPoints, assignee, epic } =
+  const { title, description, type, priority, storyPoints, assignee, epic, sprint } =
     req.body;
 
   if (!title || !title.trim()) {
@@ -67,6 +86,9 @@ export async function createItem(req, res) {
 
   const problem = await checkRelations(req.project, { assignee, epic });
   if (problem) return res.status(400).json({ message: problem });
+
+  const sprintProblem = await checkSprint(req.project, sprint, type);
+  if (sprintProblem) return res.status(400).json({ message: sprintProblem });
 
   // Atomically take the next number for this project (LIB-1, LIB-2, ...)
   const updated = await Project.findByIdAndUpdate(
@@ -87,6 +109,7 @@ export async function createItem(req, res) {
       storyPoints,
       assignee: assignee || null,
       epic: epic || null,
+      sprint: sprint || null,
       reporter: req.user._id,
     });
     await item.populate([
@@ -123,12 +146,31 @@ export async function updateItem(req, res) {
   }
   if (updates.assignee === "") updates.assignee = null;
   if (updates.epic === "") updates.epic = null;
+  if (updates.sprint === "") updates.sprint = null;
+  if (updates.type === "epic") updates.sprint = null; // epics never live in sprints
   if (updates.epic && item._id.equals(updates.epic)) {
     return res.status(400).json({ message: "An item cannot be its own epic" });
   }
 
   const problem = await checkRelations(req.project, updates);
   if (problem) return res.status(400).json({ message: problem });
+
+  if ("sprint" in updates) {
+    if (item.sprint) {
+      const current = await Sprint.findById(item.sprint);
+      if (current?.state === "closed") {
+        return res
+          .status(400)
+          .json({ message: "This item belongs to a closed sprint" });
+      }
+    }
+    const sprintProblem = await checkSprint(
+      req.project,
+      updates.sprint,
+      updates.type || item.type
+    );
+    if (sprintProblem) return res.status(400).json({ message: sprintProblem });
+  }
 
   item.set(updates);
 

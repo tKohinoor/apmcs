@@ -28,3 +28,13 @@ export function requireWrite(req, res, next) {
   }
   next();
 }
+
+// Only product owners and scrum masters may continue
+export function requireLead(req, res, next) {
+  if (!["product_owner", "scrum_master"].includes(req.memberRole)) {
+    return res
+      .status(403)
+      .json({ message: "Only a product owner or scrum master can do this" });
+  }
+  next();
+}

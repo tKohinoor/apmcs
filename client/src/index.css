@@ -181,3 +181,30 @@ select {
 .prio-high { background: #fffae6; color: #974f0c; }
 
 button.danger { background: #de350b; }
+
+.sprints { margin-top: 32px; }
+.sprints h2 { margin: 0; }
+.filters { display: flex; gap: 8px; }
+
+.sprint-card {
+  background: #fff;
+  padding: 12px 16px;
+  border-radius: 8px;
+  margin-bottom: 10px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+  border-left: 4px solid #c1c7d0;
+}
+.sprint-active { border-left-color: #36b37e; }
+.sprint-planned { border-left-color: #0052cc; }
+.sprint-head { display: flex; align-items: center; gap: 10px; }
+.sprint-dates { color: #5e6c84; font-size: 13px; }
+.sprint-goal { margin: 6px 0 0; font-size: 14px; }
+.sprint-stats { margin: 6px 0; color: #5e6c84; font-size: 13px; }
+.sprint-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+
+.state-active { background: #e3fcef; color: #006644; }
+.state-planned { background: #deebff; color: #0747a6; }
+.state-closed { background: #dfe1e6; color: #42526e; }
+
+.sprint-cell { width: 110px; font-size: 13px; color: #5e6c84; }
+.item-form label { display: flex; align-items: center; gap: 6px; font-size: 13px; }

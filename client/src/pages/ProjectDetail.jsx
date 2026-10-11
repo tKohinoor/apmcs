@@ -1,18 +1,30 @@
-import Backlog from "../components/Backlog";
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { api } from "../services/api";
+import Sprints from "../components/Sprints";
+import Backlog from "../components/Backlog";
 
 export default function ProjectDetail() {
   const { id } = useParams();
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
+  const [sprints, setSprints] = useState([]);
+  const [version, setVersion] = useState(0);
 
   useEffect(() => {
     api(`/projects/${id}`)
       .then(setData)
       .catch((err) => setError(err.message));
   }, [id]);
+
+  // Reload sprints whenever something changes (version goes up)
+  useEffect(() => {
+    api(`/projects/${id}/sprints`)
+      .then((d) => setSprints(d.sprints))
+      .catch(() => {});
+  }, [id, version]);
+
+  const refresh = () => setVersion((v) => v + 1);
 
   if (error) {
     return (
@@ -50,7 +62,19 @@ export default function ProjectDetail() {
           ))}
         </ul>
 
-        <Backlog project={project} myRole={myRole} />
+        <Sprints
+          project={project}
+          myRole={myRole}
+          sprints={sprints}
+          onChange={refresh}
+        />
+        <Backlog
+          project={project}
+          myRole={myRole}
+          sprints={sprints}
+          version={version}
+          onChange={refresh}
+        />
       </main>
     </div>
   );

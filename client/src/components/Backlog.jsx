@@ -6,7 +6,7 @@ const PRIORITIES = ["low", "medium", "high", "critical"];
 const STATUSES = ["todo", "in_progress", "in_review", "done"];
 const label = (s) => s.replace("_", " ");
 
-export default function Backlog({ project, myRole }) {
+export default function Backlog({ project, myRole, sprints, version, onChange }) {
   const canEdit = myRole !== "viewer";
   const base = `/projects/${project._id}/items`;
 
@@ -14,30 +14,38 @@ export default function Backlog({ project, myRole }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
+  const [sprintFilter, setSprintFilter] = useState("");
 
   const [title, setTitle] = useState("");
   const [type, setType] = useState("task");
   const [priority, setPriority] = useState("medium");
   const [points, setPoints] = useState("");
   const [assignee, setAssignee] = useState("");
+  const [sprint, setSprint] = useState("");
   const [formError, setFormError] = useState("");
   const [saving, setSaving] = useState(false);
 
+  const openSprints = sprints.filter((s) => s.state !== "closed");
+  const findSprint = (id) => sprints.find((s) => s._id === id);
+
   useEffect(() => {
-    setLoading(true);
-    const query = typeFilter ? `?type=${typeFilter}` : "";
+    const params = new URLSearchParams();
+    if (typeFilter) params.set("type", typeFilter);
+    if (sprintFilter) params.set("sprint", sprintFilter);
+    const query = params.toString() ? `?${params}` : "";
+
     api(`${base}${query}`)
       .then((data) => setItems(data.items))
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
-  }, [base, typeFilter]);
+  }, [base, typeFilter, sprintFilter, version]);
 
   async function handleCreate(e) {
     e.preventDefault();
     setFormError("");
     setSaving(true);
     try {
-      const data = await api(base, {
+      await api(base, {
         method: "POST",
         body: {
           title,
@@ -45,13 +53,12 @@ export default function Backlog({ project, myRole }) {
           priority,
           storyPoints: points === "" ? null : Number(points),
           assignee: assignee || null,
+          sprint: type === "epic" ? null : sprint || null,
         },
       });
-      if (!typeFilter || typeFilter === data.item.type) {
-        setItems([...items, data.item]);
-      }
       setTitle("");
       setPoints("");
+      onChange(); // reloads items and sprint totals
     } catch (err) {
       setFormError(err.message);
     } finally {
@@ -59,13 +66,11 @@ export default function Backlog({ project, myRole }) {
     }
   }
 
-  async function changeStatus(item, status) {
+  async function update(item, changes) {
+    setError("");
     try {
-      const data = await api(`${base}/${item._id}`, {
-        method: "PATCH",
-        body: { status },
-      });
-      setItems(items.map((i) => (i._id === item._id ? data.item : i)));
+      await api(`${base}/${item._id}`, { method: "PATCH", body: changes });
+      onChange();
     } catch (err) {
       setError(err.message);
     }
@@ -75,22 +80,54 @@ export default function Backlog({ project, myRole }) {
     if (!window.confirm(`Delete ${project.key}-${item.number}?`)) return;
     try {
       await api(`${base}/${item._id}`, { method: "DELETE" });
-      setItems(items.filter((i) => i._id !== item._id));
+      onChange();
     } catch (err) {
       setError(err.message);
     }
+  }
+
+  function sprintCell(item) {
+    if (item.type === "epic") return <span className="sprint-cell">-</span>;
+
+    const current = item.sprint ? findSprint(item.sprint) : null;
+    if (current?.state === "closed") {
+      return <span className="sprint-cell">{current.name}</span>;
+    }
+
+    return (
+      <select
+        className="sprint-cell"
+        value={item.sprint || ""}
+        disabled={!canEdit}
+        onChange={(e) => update(item, { sprint: e.target.value || null })}
+      >
+        <option value="">Backlog</option>
+        {openSprints.map((s) => (
+          <option key={s._id} value={s._id}>{s.name}</option>
+        ))}
+      </select>
+    );
   }
 
   return (
     <section className="backlog">
       <div className="page-title">
         <h2>Backlog</h2>
-        <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)}>
-          <option value="">All types</option>
-          {TYPES.map((t) => (
-            <option key={t} value={t}>{t}</option>
-          ))}
-        </select>
+        <div className="filters">
+          <select value={sprintFilter} onChange={(e) => setSprintFilter(e.target.value)}>
+            <option value="">All sprints</option>
+            <option value="backlog">Backlog only</option>
+            {sprints.map((s) => (
+              <option key={s._id} value={s._id}>{s.name}</option>
+            ))}
+          </select>
+          <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)}>
+            <option value="">All types</option>
+            {TYPES.map((t) => (
+              <option key={t} value={t}>{t}</option>
+            ))}
+          </select>
+        </div>
       </div>
 
       {canEdit && (
@@ -123,6 +160,16 @@ export default function Backlog({ project, myRole }) {
               <option key={m.user._id} value={m.user._id}>{m.user.name}</option>
             ))}
           </select>
+          <select
+            value={sprint}
+            onChange={(e) => setSprint(e.target.value)}
+            disabled={type === "epic"}
+          >
+            <option value="">Backlog</option>
+            {openSprints.map((s) => (
+              <option key={s._id} value={s._id}>{s.name}</option>
+            ))}
+          </select>
           <button type="submit" disabled={saving}>
             {saving ? "Adding..." : "Add"}
           </button>
@@ -132,7 +179,7 @@ export default function Backlog({ project, myRole }) {
       {error && <p className="error">{error}</p>}
 
       {loading && <p>Loading backlog...</p>}
-      {!loading && items.length === 0 && <p>No items yet. Add your first one above.</p>}
+      {!loading && items.length === 0 && <p>No items match. Add one above.</p>}
 
       <div className="item-list">
         {items.map((item) => (
@@ -146,10 +193,11 @@ export default function Backlog({ project, myRole }) {
             <span className={`badge prio-${item.priority}`}>{item.priority}</span>
             <span className="points">{item.storyPoints ?? "-"}</span>
             <span className="assignee">{item.assignee ? item.assignee.name : "Unassigned"}</span>
+            {sprintCell(item)}
             <select
               value={item.status}
               disabled={!canEdit}
-              onChange={(e) => changeStatus(item, e.target.value)}
+              onChange={(e) => update(item, { status: e.target.value })}
             >
               {STATUSES.map((s) => (
                 <option key={s} value={s}>{label(s)}</option>

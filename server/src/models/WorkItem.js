@@ -41,6 +41,11 @@ const workItemSchema = new mongoose.Schema(
       ref: "WorkItem",
       default: null,
     },
+    sprint: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Sprint",
+      default: null, // null means the item is in the backlog
+    },
     rank: { type: Number, default: 0 }, // order in the backlog (we'll use this for drag-and-drop later)
   },
   { timestamps: true }
