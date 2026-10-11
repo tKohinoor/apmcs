@@ -4,6 +4,7 @@ import { api } from "../services/api";
 import Team from "../components/Team";
 import Sprints from "../components/Sprints";
 import Backlog from "../components/Backlog";
+import Board from "../components/Board";
 
 export default function ProjectDetail() {
   const { id } = useParams();
@@ -52,6 +53,13 @@ export default function ProjectDetail() {
         <p>{project.description || "No description"}</p>
 
         <Team project={project} myRole={myRole} onChange={refresh} />
+        <Board
+          project={project}
+          myRole={myRole}
+          sprints={sprints}
+          version={version}
+          onChange={refresh}
+        />
         <Sprints
           project={project}
           myRole={myRole}

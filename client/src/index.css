@@ -234,3 +234,59 @@ button.danger { background: #de350b; }
   margin: 0 0 8px;
   font-size: 13px;
 }
+
+.board { margin-top: 32px; }
+.board h2 { margin: 0; }
+.board-hint { color: #5e6c84; font-size: 14px; }
+.mine-toggle { display: flex; align-items: center; gap: 6px; font-size: 14px; }
+
+.progress-row { display: flex; align-items: center; gap: 12px; margin: 8px 0 14px; }
+.progress {
+  flex: 1;
+  max-width: 360px;
+  height: 8px;
+  background: #dfe1e6;
+  border-radius: 4px;
+  overflow: hidden;
+}
+.progress-fill { height: 100%; background: #36b37e; transition: width 0.3s; }
+
+.board-columns {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(210px, 1fr));
+  gap: 12px;
+  overflow-x: auto;
+  padding-bottom: 8px;
+}
+
+.board-column {
+  background: #ebecf0;
+  border-radius: 8px;
+  padding: 10px;
+  min-height: 260px;
+  transition: background 0.15s;
+}
+.board-column.is-over { background: #d3e4ff; }
+
+.column-head { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; font-size: 14px; }
+.column-head small { margin-left: auto; color: #5e6c84; }
+.column-body { display: flex; flex-direction: column; gap: 8px; }
+.column-empty { color: #8993a4; font-size: 13px; text-align: center; margin: 20px 0; }
+
+.board-card {
+  background: #fff;
+  border-radius: 6px;
+  padding: 10px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+  touch-action: none;
+}
+.board-card.can-drag { cursor: grab; }
+.board-card.is-dragging { opacity: 0.35; }
+.board-card.overlay { cursor: grabbing; box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3); }
+
+.card-top, .card-bottom { display: flex; align-items: center; gap: 8px; }
+.card-title { margin: 8px 0; font-size: 14px; }
+.card-bottom .avatar { margin-left: auto; }
+
+.avatar.small { width: 22px; height: 22px; font-size: 11px; }
+.avatar.empty { background: #c1c7d0; }
