@@ -38,3 +38,13 @@ export function requireLead(req, res, next) {
   }
   next();
 }
+
+// Only product owners may continue
+export function requireProductOwner(req, res, next) {
+  if (req.memberRole !== "product_owner") {
+    return res
+      .status(403)
+      .json({ message: "Only a product owner can do this" });
+  }
+  next();
+}

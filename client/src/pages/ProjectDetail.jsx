@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { api } from "../services/api";
+import Team from "../components/Team";
 import Sprints from "../components/Sprints";
 import Backlog from "../components/Backlog";
 
@@ -11,14 +12,11 @@ export default function ProjectDetail() {
   const [sprints, setSprints] = useState([]);
   const [version, setVersion] = useState(0);
 
+  // Reload the project and its sprints whenever something changes
   useEffect(() => {
     api(`/projects/${id}`)
       .then(setData)
       .catch((err) => setError(err.message));
-  }, [id]);
-
-  // Reload sprints whenever something changes (version goes up)
-  useEffect(() => {
     api(`/projects/${id}/sprints`)
       .then((d) => setSprints(d.sprints))
       .catch(() => {});
@@ -53,15 +51,7 @@ export default function ProjectDetail() {
         <h1>{project.name}</h1>
         <p>{project.description || "No description"}</p>
 
-        <h3>Team members</h3>
-        <ul>
-          {project.members.map((m) => (
-            <li key={m.user._id}>
-              {m.user.name} ({m.user.email}) - {m.role.replace("_", " ")}
-            </li>
-          ))}
-        </ul>
-
+        <Team project={project} myRole={myRole} onChange={refresh} />
         <Sprints
           project={project}
           myRole={myRole}
