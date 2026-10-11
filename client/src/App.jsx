@@ -1,16 +1,23 @@
-import { useEffect, useState } from "react";
+import { Routes, Route, Navigate } from "react-router-dom";
+import Login from "./pages/Login";
+import Register from "./pages/Register";
+import Dashboard from "./pages/Dashboard";
+import ProtectedRoute from "./components/ProtectedRoute";
 
-function App() {
-  const [message, setMessage] = useState("Loading...");
-
-  useEffect(() => {
-    fetch("http://localhost:5000/api/v1/health")
-      .then((res) => res.json())
-      .then((data) => setMessage(data.message))
-      .catch(() => setMessage("Could not reach the server"));
-  }, []);
-
-  return <h1>{message}</h1>;
+export default function App() {
+  return (
+    <Routes>
+      <Route path="/login" element={<Login />} />
+      <Route path="/register" element={<Register />} />
+      <Route
+        path="/dashboard"
+        element={
+          <ProtectedRoute>
+            <Dashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route path="*" element={<Navigate to="/dashboard" replace />} />
+    </Routes>
+  );
 }
-
-export default App;
