@@ -1,6 +1,7 @@
 import express from "express";
 import cors from "cors";
 import helmet from "helmet";
+import authRoutes from "./routes/authRoutes.js";
 
 const app = express();
 
@@ -10,6 +11,14 @@ app.use(express.json());
 
 app.get("/api/v1/health", (req, res) => {
   res.json({ status: "ok", message: "APMCS server is running" });
+});
+
+app.use("/api/v1/auth", authRoutes);
+
+// Catches any error thrown in the code above
+app.use((err, req, res, next) => {
+  console.error(err);
+  res.status(err.status || 500).json({ message: err.message || "Server error" });
 });
 
 export default app;
