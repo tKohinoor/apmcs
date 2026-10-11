@@ -1,3 +1,4 @@
+import projectRoutes from "./routes/projectRoutes.js";
 import express from "express";
 import cors from "cors";
 import helmet from "helmet";
@@ -14,6 +15,7 @@ app.get("/api/v1/health", (req, res) => {
 });
 
 app.use("/api/v1/auth", authRoutes);
+app.use("/api/v1/projects", projectRoutes);
 
 // Catches any error thrown in the code above
 app.use((err, req, res, next) => {

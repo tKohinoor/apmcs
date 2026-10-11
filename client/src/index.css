@@ -66,3 +66,53 @@ button:disabled { opacity: 0.6; cursor: not-allowed; }
 
 .dashboard header div { display: flex; gap: 12px; align-items: center; }
 .dashboard main { padding: 24px; }
+
+.page-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+.page-title h1 { margin: 0; }
+
+.project-form {
+  background: #fff;
+  padding: 16px;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: 420px;
+  margin-bottom: 20px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+}
+
+.project-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 16px;
+}
+
+.project-card {
+  background: #fff;
+  padding: 16px;
+  border-radius: 8px;
+  text-decoration: none;
+  color: inherit;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+  display: block;
+}
+.project-card:hover { box-shadow: 0 3px 10px rgba(0, 0, 0, 0.18); }
+.project-card h3 { margin: 8px 0 4px; }
+.project-card p { margin: 0 0 8px; color: #5e6c84; font-size: 14px; }
+
+.project-key {
+  background: #deebff;
+  color: #0747a6;
+  font-weight: 700;
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.plain-link { color: inherit; text-decoration: none; }
