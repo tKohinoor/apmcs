@@ -1,3 +1,4 @@
+import Backlog from "../components/Backlog";
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { api } from "../services/api";
@@ -49,7 +50,7 @@ export default function ProjectDetail() {
           ))}
         </ul>
 
-        <p><em>Backlog and board coming next.</em></p>
+        <Backlog project={project} myRole={myRole} />
       </main>
     </div>
   );

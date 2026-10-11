@@ -25,6 +25,7 @@ const projectSchema = new mongoose.Schema(
     description: { type: String, trim: true, maxlength: 500, default: "" },
     owner: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
     members: [memberSchema],
+    itemCounter: { type: Number, default: 0 },
   },
   { timestamps: true }
 );
