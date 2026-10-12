@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { api } from "../services/api";
 import { socket } from "../services/socket";
 import Team from "../components/Team";
@@ -8,6 +8,8 @@ import Sprints from "../components/Sprints";
 import Backlog from "../components/Backlog";
 import ItemModal from "../components/ItemModal";
 import Reports from "../components/Reports";
+import NotificationBell from "../components/NotificationBell";
+import Activity from "../components/Activity";
 
 export default function ProjectDetail() {
   const { id } = useParams();
@@ -19,6 +21,16 @@ export default function ProjectDetail() {
   const [openItemId, setOpenItemId] = useState(null);
   const [online, setOnline] = useState([]);
   const [live, setLive] = useState(socket.connected);
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // A notification link looks like /projects/ID?item=ITEM_ID: open that item
+  useEffect(() => {
+    const itemParam = searchParams.get("item");
+    if (itemParam) {
+      setOpenItemId(itemParam);
+      setSearchParams({}, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
 
   // Reload the project and its sprints whenever something changes
   useEffect(() => {
@@ -123,6 +135,7 @@ export default function ProjectDetail() {
           <Link to="/dashboard" className="plain-link">APMCS</Link> / {project.key}
         </h2>
         <div>
+          <NotificationBell />
           <div className="presence">
             <span
               className={`live-dot ${live ? "on" : ""}`}
@@ -168,6 +181,10 @@ export default function ProjectDetail() {
           sprints={sprints}
           version={version}
           onChange={refresh}
+          onOpen={setOpenItemId}
+        />
+        <Activity 
+          project={project}
           onOpen={setOpenItemId}
         />
       </main>

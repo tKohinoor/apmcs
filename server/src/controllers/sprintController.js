@@ -3,6 +3,7 @@ import Sprint from "../models/Sprint.js";
 import WorkItem from "../models/WorkItem.js";
 import { notifyProject } from "../sockets/io.js";
 import { recordSnapshots } from "../utils/snapshots.js";
+import { logActivity, notifyUsers } from "../utils/activity.js";
 
 const toDate = (value) => {
   const d = new Date(value);
@@ -86,6 +87,7 @@ export async function createSprint(req, res) {
       startDate: start,
       endDate: end,
     });
+    await logActivity(req, `created sprint "${sprint.name}"`);
     notifyProject(req, "sprints");
     res.status(201).json({ sprint });
   } catch (err) {
@@ -180,6 +182,15 @@ export async function startSprint(req, res) {
     throw err;
   }
   await recordSnapshots(sprint._id);
+  await logActivity(req, `started sprint "${sprint.name}"`);
+  await notifyUsers(
+    req,
+    req.project.members.map((m) => m.user),
+    {
+      type: "sprint",
+      message: `${req.user.name} started sprint "${sprint.name}" in ${req.project.name}`,
+    }
+  );
   notifyProject(req, "sprints");
   res.json({ sprint });
 }
@@ -226,6 +237,18 @@ export async function completeSprint(req, res) {
   sprint.completedPoints = sumPoints(done);
   await sprint.save();
 
+    await logActivity(
+    req,
+    `completed sprint "${sprint.name}" (${sprint.completedPoints} of ${sprint.committedPoints} pts)`
+  );
+  await notifyUsers(
+    req,
+    req.project.members.map((m) => m.user),
+    {
+      type: "sprint",
+      message: `${req.user.name} completed sprint "${sprint.name}" in ${req.project.name}`,
+    }
+  );
   notifyProject(req, "sprints");
   res.json({ sprint, movedCount: moved.modifiedCount });
 }
@@ -240,6 +263,7 @@ export async function deleteSprint(req, res) {
   // Its items go back to the backlog
   await WorkItem.updateMany({ sprint: sprint._id }, { sprint: null });
   await sprint.deleteOne();
+  await logActivity(req, `deleted sprint "${sprint.name}"`);
   notifyProject(req, "sprints");
   res.json({ message: "Sprint deleted" });
 }

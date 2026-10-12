@@ -1,12 +1,14 @@
-import memberRoutes from "./routes/memberRoutes.js";
-import sprintRoutes from "./routes/sprintRoutes.js";
-import itemRoutes from "./routes/itemRoutes.js";
-import projectRoutes from "./routes/projectRoutes.js";
 import express from "express";
 import cors from "cors";
 import helmet from "helmet";
 import authRoutes from "./routes/authRoutes.js";
+import projectRoutes from "./routes/projectRoutes.js";
+import itemRoutes from "./routes/itemRoutes.js";
+import sprintRoutes from "./routes/sprintRoutes.js";
+import memberRoutes from "./routes/memberRoutes.js";
 import reportRoutes from "./routes/reportRoutes.js";
+import notificationRoutes from "./routes/notificationRoutes.js";
+import activityRoutes from "./routes/activityRoutes.js";
 
 const app = express();
 
@@ -19,10 +21,14 @@ app.get("/api/v1/health", (req, res) => {
 });
 
 app.use("/api/v1/auth", authRoutes);
+app.use("/api/v1/notifications", notificationRoutes);
+
+// Routes nested under a project come before the general /projects route
 app.use("/api/v1/projects/:projectId/items", itemRoutes);
 app.use("/api/v1/projects/:projectId/sprints", sprintRoutes);
 app.use("/api/v1/projects/:projectId/members", memberRoutes);
 app.use("/api/v1/projects/:projectId/reports", reportRoutes);
+app.use("/api/v1/projects/:projectId/activity", activityRoutes);
 app.use("/api/v1/projects", projectRoutes);
 
 // Catches any error thrown in the code above

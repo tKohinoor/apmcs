@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { api } from "../services/api";
+import NotificationBell from "../components/NotificationBell";
 
 export default function Dashboard() {
   const { user, logout } = useAuth();
@@ -49,6 +50,7 @@ export default function Dashboard() {
       <header>
         <h2>APMCS</h2>
         <div>
+          <NotificationBell />
           <span>Hello, {user.name}</span>
           <button onClick={logout}>Log out</button>
         </div>

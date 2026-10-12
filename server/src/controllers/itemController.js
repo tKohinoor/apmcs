@@ -5,6 +5,7 @@ import WorkItem from "../models/WorkItem.js";
 import Comment from "../models/Comment.js";
 import { notifyProject } from "../sockets/io.js";
 import { recordSnapshots } from "../utils/snapshots.js";
+import { logActivity, notifyUsers } from "../utils/activity.js";
 
 const UPDATABLE = [
   "title",
@@ -134,6 +135,15 @@ export async function createItem(req, res) {
       { path: "assignee", select: "name" },
       { path: "epic", select: "title number" },
     ]);
+    const ref = `${req.project.key}-${item.number}`;
+    await logActivity(req, `created ${item.type} ${ref}: ${item.title}`, item._id);
+    if (item.assignee) {
+      await notifyUsers(req, [item.assignee._id], {
+        type: "assigned",
+        message: `${req.user.name} assigned you ${ref}: ${item.title}`,
+        itemId: item._id,
+      });
+    }
     notifyProject(req, "items", item._id);
     res.status(201).json({ item });
   } catch (err) {
@@ -192,7 +202,12 @@ export async function updateItem(req, res) {
   }
 
   const previousSprint = item.sprint;
+  const before = {
+    status: item.status,
+    assignee: item.assignee ? String(item.assignee) : null,
+  };
   item.set(updates);
+  const hasChanges = item.isModified();
 
   try {
     await item.save();
@@ -201,6 +216,36 @@ export async function updateItem(req, res) {
       { path: "assignee", select: "name" },
       { path: "epic", select: "title number" },
     ]);
+    if (hasChanges) {
+      const ref = `${req.project.key}-${item.number}`;
+      const newAssignee = item.assignee ? String(item.assignee._id) : null;
+
+      if (item.status !== before.status) {
+        const where = item.status.replace("_", " ");
+        await logActivity(req, `moved ${ref} to ${where}`, item._id);
+        await notifyUsers(req, [item.assignee?._id, item.reporter], {
+          type: "status",
+          message: `${req.user.name} moved ${ref} to ${where}: ${item.title}`,
+          itemId: item._id,
+        });
+      } else if (newAssignee !== before.assignee) {
+        await logActivity(
+          req,
+          newAssignee ? `assigned ${ref} to ${item.assignee.name}` : `unassigned ${ref}`,
+          item._id
+        );
+      } else {
+        await logActivity(req, `updated ${ref}`, item._id);
+      }
+
+      if (newAssignee && newAssignee !== before.assignee) {
+        await notifyUsers(req, [newAssignee], {
+          type: "assigned",
+          message: `${req.user.name} assigned you ${ref}: ${item.title}`,
+          itemId: item._id,
+        });
+      }
+    }
     notifyProject(req, "items", item._id);
     res.json({ item });
   } catch (err) {
@@ -230,6 +275,10 @@ export async function deleteItem(req, res) {
   await Comment.deleteMany({ item: item._id });
   await item.deleteOne();
   await recordSnapshots(item.sprint);
+  await logActivity(
+    req,
+    `deleted ${item.type} ${req.project.key}-${item.number}: ${item.title}`
+  );
   notifyProject(req, "items", item._id);
   res.json({ message: "Item deleted" });
 }

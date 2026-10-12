@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import Comment from "../models/Comment.js";
 import WorkItem from "../models/WorkItem.js";
 import { notifyProject } from "../sockets/io.js";
+import { logActivity, notifyUsers } from "../utils/activity.js";
 
 // The item must exist AND belong to the project the user has access to
 async function findItem(req) {
@@ -45,6 +46,13 @@ export async function createComment(req, res) {
   });
   await comment.populate("author", "name");
 
+  const ref = `${req.project.key}-${item.number}`;
+  await logActivity(req, `commented on ${ref}`, item._id);
+  await notifyUsers(req, [item.assignee, item.reporter], {
+    type: "comment",
+    message: `${req.user.name} commented on ${ref}: ${item.title}`,
+    itemId: item._id,
+  });
   notifyProject(req, "comments", item._id);
   res.status(201).json({ comment });
 }

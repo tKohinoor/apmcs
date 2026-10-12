@@ -54,3 +54,9 @@ export function revokeAccess(projectId, userId, notifyUser = true) {
   io.in(`user:${userId}`).socketsLeave(`project:${projectId}`);
   broadcastPresence(projectId);
 }
+
+// Tells one user (in all their open tabs) that something new arrived
+export function emitToUser(userId) {
+  if (!io) return;
+  io.to(`user:${userId}`).emit("notification:new");
+}

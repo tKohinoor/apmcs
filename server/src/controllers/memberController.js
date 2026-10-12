@@ -3,6 +3,7 @@ import Project from "../models/Project.js";
 import User from "../models/User.js";
 import WorkItem from "../models/WorkItem.js";
 import { notifyProject, revokeAccess } from "../sockets/io.js";
+import { logActivity, notifyUsers } from "../utils/activity.js";
 
 const ALL_ROLES = ["product_owner", "scrum_master", "member", "viewer"];
 const ADD_ROLES = ["scrum_master", "member", "viewer"];
@@ -34,7 +35,11 @@ export async function addMember(req, res) {
   if (result.modifiedCount === 0) {
     return res.status(409).json({ message: "Already a member of this project" });
   }
-
+  await logActivity(req, `added ${user.name} as ${role.replace("_", " ")}`);
+  await notifyUsers(req, [user._id], {
+    type: "member",
+    message: `${req.user.name} added you to ${req.project.name} as ${role.replace("_", " ")}`,
+  });
   notifyProject(req, "members");
   res.status(201).json({ message: `${user.name} added as ${role}` });
 }
@@ -64,7 +69,15 @@ export async function updateMemberRole(req, res) {
     { _id: req.project._id, "members.user": userId },
     { $set: { "members.$.role": role } }
   );
-
+  const person = await User.findById(userId).select("name");
+  await logActivity(
+    req,
+    `changed ${person?.name ?? "a member"}'s role to ${role.replace("_", " ")}`
+  );
+  await notifyUsers(req, [userId], {
+    type: "member",
+    message: `${req.user.name} changed your role in ${req.project.name} to ${role.replace("_", " ")}`,
+  });
   notifyProject(req, "members");
   res.json({ message: "Role updated" });
 }
@@ -109,6 +122,18 @@ export async function removeMember(req, res) {
 
       // Remove them from the live room first, so they don't receive the next notice
   revokeAccess(req.project._id, userId, !isSelf);
+  const person = await User.findById(userId).select("name");
+  await logActivity(
+    req,
+    isSelf ? "left the project" : `removed ${person?.name ?? "a member"}`
+  );
+  if (!isSelf) {
+    await notifyUsers(req, [userId], {
+      type: "member",
+      message: `${req.user.name} removed you from ${req.project.name}`,
+      projectId: null, // they can no longer open the project, so no link
+    });
+  }
   notifyProject(req, "members");
   res.json({ message: isSelf ? "You left the project" : "Member removed" });
 }
