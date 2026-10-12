@@ -42,7 +42,7 @@ function CardBody({ item, projectKey }) {
   );
 }
 
-function DraggableCard({ item, projectKey, canEdit }) {
+function DraggableCard({ item, projectKey, canEdit, onOpen }) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: item._id,
     disabled: !canEdit,
@@ -54,13 +54,17 @@ function DraggableCard({ item, projectKey, canEdit }) {
       className={`board-card ${isDragging ? "is-dragging" : ""} ${canEdit ? "can-drag" : ""}`}
       {...listeners}
       {...attributes}
+      onClick={() => onOpen(item._id)}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") onOpen(item._id);
+      }}
     >
       <CardBody item={item} projectKey={projectKey} />
     </div>
   );
 }
 
-function Column({ column, items, projectKey, canEdit }) {
+function Column({ column, items, projectKey, canEdit, onOpen }) {
   const { setNodeRef, isOver } = useDroppable({ id: column.id });
   const points = items.reduce((sum, i) => sum + (i.storyPoints || 0), 0);
 
@@ -78,6 +82,7 @@ function Column({ column, items, projectKey, canEdit }) {
             item={item}
             projectKey={projectKey}
             canEdit={canEdit}
+            onOpen={onOpen}
           />
         ))}
         {items.length === 0 && <p className="column-empty">Drop items here</p>}
@@ -86,7 +91,7 @@ function Column({ column, items, projectKey, canEdit }) {
   );
 }
 
-export default function Board({ project, myRole, sprints, version, onChange }) {
+export default function Board({ project, myRole, sprints, version, onChange, onOpen }) {
   const { user } = useAuth();
   const canEdit = myRole !== "viewer";
   const sprint = sprints.find((s) => s.state === "active");
@@ -201,6 +206,7 @@ export default function Board({ project, myRole, sprints, version, onChange }) {
                   items={visible.filter((i) => i.status === col.id)}
                   projectKey={project.key}
                   canEdit={canEdit}
+                  onOpen={onOpen}
                 />
               ))}
             </div>

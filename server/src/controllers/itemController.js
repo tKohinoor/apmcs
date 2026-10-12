@@ -2,6 +2,7 @@ import Sprint from "../models/Sprint.js";
 import mongoose from "mongoose";
 import Project from "../models/Project.js";
 import WorkItem from "../models/WorkItem.js";
+import Comment from "../models/Comment.js";
 
 const UPDATABLE = [
   "title",
@@ -74,6 +75,20 @@ export async function listItems(req, res) {
     .populate("epic", "title number");
 
   res.json({ items });
+}
+
+export async function getItem(req, res) {
+  const item = await findItem(req);
+  if (!item) return res.status(404).json({ message: "Item not found" });
+
+  await item.populate([
+    { path: "assignee", select: "name" },
+    { path: "epic", select: "title number" },
+    { path: "reporter", select: "name" },
+    { path: "sprint", select: "name state" },
+  ]);
+
+  res.json({ item });
 }
 
 export async function createItem(req, res) {
@@ -205,6 +220,7 @@ export async function deleteItem(req, res) {
     await WorkItem.updateMany({ epic: item._id }, { epic: null });
   }
 
+  await Comment.deleteMany({ item: item._id });
   await item.deleteOne();
   res.json({ message: "Item deleted" });
 }

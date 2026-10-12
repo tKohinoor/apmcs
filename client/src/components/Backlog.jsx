@@ -6,7 +6,7 @@ const PRIORITIES = ["low", "medium", "high", "critical"];
 const STATUSES = ["todo", "in_progress", "in_review", "done"];
 const label = (s) => s.replace("_", " ");
 
-export default function Backlog({ project, myRole, sprints, version, onChange }) {
+export default function Backlog({ project, myRole, sprints, version, onChange, onOpen }) {
   const canEdit = myRole !== "viewer";
   const base = `/projects/${project._id}/items`;
 
@@ -187,7 +187,9 @@ export default function Backlog({ project, myRole, sprints, version, onChange })
             <span className={`badge type-${item.type}`}>{item.type}</span>
             <span className="item-key">{project.key}-{item.number}</span>
             <span className="item-title">
-              {item.title}
+              <button className="link-button" onClick={() => onOpen(item._id)}>
+                {item.title}
+              </button>
               {item.epic && <small className="epic-tag"> in {item.epic.title}</small>}
             </span>
             <span className={`badge prio-${item.priority}`}>{item.priority}</span>

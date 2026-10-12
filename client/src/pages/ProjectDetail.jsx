@@ -2,9 +2,10 @@ import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { api } from "../services/api";
 import Team from "../components/Team";
+import Board from "../components/Board";
 import Sprints from "../components/Sprints";
 import Backlog from "../components/Backlog";
-import Board from "../components/Board";
+import ItemModal from "../components/ItemModal";
 
 export default function ProjectDetail() {
   const { id } = useParams();
@@ -12,6 +13,7 @@ export default function ProjectDetail() {
   const [error, setError] = useState("");
   const [sprints, setSprints] = useState([]);
   const [version, setVersion] = useState(0);
+  const [openItemId, setOpenItemId] = useState(null);
 
   // Reload the project and its sprints whenever something changes
   useEffect(() => {
@@ -59,6 +61,7 @@ export default function ProjectDetail() {
           sprints={sprints}
           version={version}
           onChange={refresh}
+          onOpen={setOpenItemId}
         />
         <Sprints
           project={project}
@@ -72,8 +75,20 @@ export default function ProjectDetail() {
           sprints={sprints}
           version={version}
           onChange={refresh}
+          onOpen={setOpenItemId}
         />
       </main>
+
+      {openItemId && (
+        <ItemModal
+          key={openItemId}
+          project={project}
+          myRole={myRole}
+          itemId={openItemId}
+          onClose={() => setOpenItemId(null)}
+          onChange={refresh}
+        />
+      )}
     </div>
   );
 }
