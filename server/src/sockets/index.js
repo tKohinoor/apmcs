@@ -4,10 +4,12 @@ import mongoose from "mongoose";
 import User from "../models/User.js";
 import Project from "../models/Project.js";
 import { setIo, broadcastPresence } from "./io.js";
+import { allowedOrigins } from "../config/env.js";
 
 export function initSockets(httpServer) {
   const io = new Server(httpServer, {
-    cors: { origin: process.env.CLIENT_URL, credentials: true },
+    cors: { origin: allowedOrigins, credentials: true },
+    maxHttpBufferSize: 1e4, // our sockets only send tiny messages
   });
 
   // Runs once for every new connection: only logged-in users get through
@@ -16,7 +18,9 @@ export function initSockets(httpServer) {
       const token = socket.handshake.auth?.token;
       if (!token) return next(new Error("Not logged in"));
 
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      const decoded = jwt.verify(token, process.env.JWT_SECRET, {
+        algorithms: ["HS256"],
+      });
       const user = await User.findById(decoded.id).select("name");
       if (!user) return next(new Error("User no longer exists"));
 
