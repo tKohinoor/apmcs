@@ -381,3 +381,26 @@ textarea {
 .comment-meta { display: flex; align-items: center; gap: 10px; font-size: 13px; }
 .comment-meta small { color: #5e6c84; }
 .comment-form { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
+
+.presence { display: flex; align-items: center; gap: 6px; }
+.presence small { color: #5e6c84; }
+.live-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #c1c7d0;
+}
+.live-dot.on { background: #36b37e; box-shadow: 0 0 0 3px #e3fcef; }
+
+.banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #fffae6;
+  color: #974f0c;
+  padding: 10px 12px;
+  border-radius: 4px;
+  font-size: 13px;
+  margin-bottom: 12px;
+}
+.banner button { white-space: nowrap; padding: 6px 10px; }

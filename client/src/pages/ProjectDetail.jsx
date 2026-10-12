@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { api } from "../services/api";
+import { socket } from "../services/socket";
 import Team from "../components/Team";
 import Board from "../components/Board";
 import Sprints from "../components/Sprints";
@@ -9,11 +10,14 @@ import ItemModal from "../components/ItemModal";
 
 export default function ProjectDetail() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
   const [sprints, setSprints] = useState([]);
   const [version, setVersion] = useState(0);
   const [openItemId, setOpenItemId] = useState(null);
+  const [online, setOnline] = useState([]);
+  const [live, setLive] = useState(socket.connected);
 
   // Reload the project and its sprints whenever something changes
   useEffect(() => {
@@ -26,6 +30,75 @@ export default function ProjectDetail() {
   }, [id, version]);
 
   const refresh = () => setVersion((v) => v + 1);
+
+  // Several notices can arrive together, so wait a moment and reload once
+  const refreshTimer = useRef(null);
+  const scheduleRefresh = useCallback(() => {
+    clearTimeout(refreshTimer.current);
+    refreshTimer.current = setTimeout(() => setVersion((v) => v + 1), 150);
+  }, []);
+  useEffect(() => () => clearTimeout(refreshTimer.current), []);
+
+  const closeModal = useCallback(() => setOpenItemId(null), []);
+
+  // Live connection for this project
+  useEffect(() => {
+    let needsResync = false;
+
+    function join() {
+      socket.emit("project:join", id, (res) => {
+        if (!res?.ok) console.warn("Live updates unavailable:", res?.message);
+      });
+    }
+    function onConnect() {
+      setLive(true);
+      join();
+      // After a dropped connection we may have missed changes
+      if (needsResync) {
+        needsResync = false;
+        scheduleRefresh();
+      }
+    }
+    function onDisconnect() {
+      setLive(false);
+      needsResync = true;
+    }
+    function onEvent(evt) {
+      // Comment notices are handled by the open item panel
+      if (evt.type !== "comments") scheduleRefresh();
+    }
+    function onPresence(p) {
+      if (p.projectId === id) setOnline(p.users);
+    }
+    function onRevoked(p) {
+      if (p.projectId === id) {
+        window.alert("You no longer have access to this project.");
+        navigate("/dashboard");
+      }
+    }
+
+    socket.on("connect", onConnect);
+    socket.on("disconnect", onDisconnect);
+    socket.on("connect_error", onDisconnect);
+    socket.on("project:event", onEvent);
+    socket.on("project:presence", onPresence);
+    socket.on("project:revoked", onRevoked);
+
+    if (!socket.connected) socket.connect();
+    else join();
+    setLive(socket.connected);
+
+    return () => {
+      socket.emit("project:leave", id);
+      socket.off("connect", onConnect);
+      socket.off("disconnect", onDisconnect);
+      socket.off("connect_error", onDisconnect);
+      socket.off("project:event", onEvent);
+      socket.off("project:presence", onPresence);
+      socket.off("project:revoked", onRevoked);
+      setOnline([]);
+    };
+  }, [id, navigate, scheduleRefresh]);
 
   if (error) {
     return (
@@ -48,7 +121,21 @@ export default function ProjectDetail() {
         <h2>
           <Link to="/dashboard" className="plain-link">APMCS</Link> / {project.key}
         </h2>
-        <span>Your role: {myRole.replace("_", " ")}</span>
+        <div>
+          <div className="presence">
+            <span
+              className={`live-dot ${live ? "on" : ""}`}
+              title={live ? "Live updates on" : "Offline: reconnecting..."}
+            />
+            <small>{live ? "Live" : "Offline"}</small>
+            {online.map((u) => (
+              <span key={u.id} className="avatar small" title={`${u.name} is online`}>
+                {u.name.charAt(0).toUpperCase()}
+              </span>
+            ))}
+          </div>
+          <span>Your role: {myRole.replace("_", " ")}</span>
+        </div>
       </header>
       <main>
         <h1>{project.name}</h1>
@@ -85,7 +172,7 @@ export default function ProjectDetail() {
           project={project}
           myRole={myRole}
           itemId={openItemId}
-          onClose={() => setOpenItemId(null)}
+          onClose={closeModal}
           onChange={refresh}
         />
       )}

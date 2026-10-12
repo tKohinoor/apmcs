@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { api } from "../services/api";
 import { useAuth } from "../context/AuthContext";
+import { socket } from "../services/socket";
 
 const PRIORITIES = ["low", "medium", "high", "critical"];
 const STATUSES = ["todo", "in_progress", "in_review", "done"];
@@ -36,6 +37,7 @@ export default function ItemModal({ project, myRole, itemId, onClose, onChange }
   const [saved, setSaved] = useState(false);
   const [newComment, setNewComment] = useState("");
   const [posting, setPosting] = useState(false);
+  const [remoteItem, setRemoteItem] = useState(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -61,6 +63,40 @@ export default function ItemModal({ project, myRole, itemId, onClose, onChange }
 
   const dirty =
     item && draft && JSON.stringify(draft) !== JSON.stringify(toDraft(item));
+      // Live updates for this item from other people
+  useEffect(() => {
+    function onEvent(evt) {
+      if (evt.itemId !== itemId) return;
+
+      if (evt.type === "comments") {
+        api(`${base}/comments`)
+          .then((c) => setComments(c.comments))
+          .catch(() => {});
+      }
+
+      // Ignore our own changes: our screen is already up to date
+      if (evt.type === "items" && evt.actorId !== user.id) {
+        api(base)
+          .then((i) => setRemoteItem(i.item))
+          .catch(() => {
+            window.alert("This item was deleted by someone else.");
+            onClose();
+          });
+      }
+    }
+
+    socket.on("project:event", onEvent);
+    return () => socket.off("project:event", onEvent);
+  }, [base, itemId, user.id, onClose]);
+
+  // If we have no unsaved edits, show the other person's version straight away
+  useEffect(() => {
+    if (remoteItem && !dirty) {
+      setItem(remoteItem);
+      setDraft(toDraft(remoteItem));
+      setRemoteItem(null);
+    }
+  }, [remoteItem, dirty]);
 
   function requestClose() {
     if (dirty && !window.confirm("Discard your unsaved changes?")) return;
@@ -108,6 +144,7 @@ export default function ItemModal({ project, myRole, itemId, onClose, onChange }
       setItem(updated);
       setDraft(toDraft(updated));
       setSaved(true);
+      setRemoteItem(null);
       onChange();
     } catch (err) {
       setError(err.message);
@@ -177,6 +214,21 @@ export default function ItemModal({ project, myRole, itemId, onClose, onChange }
             </div>
 
             {error && <p className="error">{error}</p>}
+            {remoteItem && dirty && (
+              <div className="banner">
+                Someone else changed this item while you were editing. Saving
+                now will overwrite their changes.
+                <button
+                  onClick={() => {
+                    setItem(remoteItem);
+                    setDraft(toDraft(remoteItem));
+                    setRemoteItem(null);
+                  }}
+                >
+                  Load their version
+                </button>
+              </div>
+            )}            
 
             <div className="modal-grid">
               <div className="modal-main">
