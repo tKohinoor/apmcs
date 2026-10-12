@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import Project from "../models/Project.js";
 import User from "../models/User.js";
 import WorkItem from "../models/WorkItem.js";
+import { notifyProject, revokeAccess } from "../sockets/io.js";
 
 const ALL_ROLES = ["product_owner", "scrum_master", "member", "viewer"];
 const ADD_ROLES = ["scrum_master", "member", "viewer"];
@@ -34,6 +35,7 @@ export async function addMember(req, res) {
     return res.status(409).json({ message: "Already a member of this project" });
   }
 
+  notifyProject(req, "members");
   res.status(201).json({ message: `${user.name} added as ${role}` });
 }
 
@@ -63,6 +65,7 @@ export async function updateMemberRole(req, res) {
     { $set: { "members.$.role": role } }
   );
 
+  notifyProject(req, "members");
   res.json({ message: "Role updated" });
 }
 
@@ -104,5 +107,8 @@ export async function removeMember(req, res) {
     { assignee: null }
   );
 
+      // Remove them from the live room first, so they don't receive the next notice
+  revokeAccess(req.project._id, userId, !isSelf);
+  notifyProject(req, "members");
   res.json({ message: isSelf ? "You left the project" : "Member removed" });
 }

@@ -6,6 +6,7 @@ import express from "express";
 import cors from "cors";
 import helmet from "helmet";
 import authRoutes from "./routes/authRoutes.js";
+import reportRoutes from "./routes/reportRoutes.js";
 
 const app = express();
 
@@ -21,6 +22,7 @@ app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/projects/:projectId/items", itemRoutes);
 app.use("/api/v1/projects/:projectId/sprints", sprintRoutes);
 app.use("/api/v1/projects/:projectId/members", memberRoutes);
+app.use("/api/v1/projects/:projectId/reports", reportRoutes);
 app.use("/api/v1/projects", projectRoutes);
 
 // Catches any error thrown in the code above

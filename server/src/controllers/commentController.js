@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import Comment from "../models/Comment.js";
 import WorkItem from "../models/WorkItem.js";
+import { notifyProject } from "../sockets/io.js";
 
 // The item must exist AND belong to the project the user has access to
 async function findItem(req) {
@@ -44,6 +45,7 @@ export async function createComment(req, res) {
   });
   await comment.populate("author", "name");
 
+  notifyProject(req, "comments", item._id);
   res.status(201).json({ comment });
 }
 
@@ -71,5 +73,6 @@ export async function deleteComment(req, res) {
   }
 
   await comment.deleteOne();
+  notifyProject(req, "comments", itemId);
   res.json({ message: "Comment deleted" });
 }

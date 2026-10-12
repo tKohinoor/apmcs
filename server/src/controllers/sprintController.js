@@ -1,6 +1,8 @@
 import mongoose from "mongoose";
 import Sprint from "../models/Sprint.js";
 import WorkItem from "../models/WorkItem.js";
+import { notifyProject } from "../sockets/io.js";
+import { recordSnapshots } from "../utils/snapshots.js";
 
 const toDate = (value) => {
   const d = new Date(value);
@@ -84,6 +86,7 @@ export async function createSprint(req, res) {
       startDate: start,
       endDate: end,
     });
+    notifyProject(req, "sprints");
     res.status(201).json({ sprint });
   } catch (err) {
     if (err.name === "ValidationError") {
@@ -127,6 +130,7 @@ export async function updateSprint(req, res) {
 
   try {
     await sprint.save();
+    notifyProject(req, "sprints");
     res.json({ sprint });
   } catch (err) {
     if (err.name === "ValidationError") {
@@ -175,6 +179,8 @@ export async function startSprint(req, res) {
     }
     throw err;
   }
+  await recordSnapshots(sprint._id);
+  notifyProject(req, "sprints");
   res.json({ sprint });
 }
 
@@ -205,6 +211,9 @@ export async function completeSprint(req, res) {
 
   const items = await WorkItem.find({ sprint: sprint._id });
   const done = items.filter((i) => i.status === "done");
+  // Save the final picture while the unfinished items are still in the sprint,
+  // so the chart ends at what was really left, not at zero
+  await recordSnapshots(sprint._id);
 
   // Unfinished items leave; finished items stay as the sprint's history
   const moved = await WorkItem.updateMany(
@@ -217,6 +226,7 @@ export async function completeSprint(req, res) {
   sprint.completedPoints = sumPoints(done);
   await sprint.save();
 
+  notifyProject(req, "sprints");
   res.json({ sprint, movedCount: moved.modifiedCount });
 }
 
@@ -230,5 +240,6 @@ export async function deleteSprint(req, res) {
   // Its items go back to the backlog
   await WorkItem.updateMany({ sprint: sprint._id }, { sprint: null });
   await sprint.deleteOne();
+  notifyProject(req, "sprints");
   res.json({ message: "Sprint deleted" });
 }

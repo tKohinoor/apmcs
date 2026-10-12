@@ -7,6 +7,7 @@ import Board from "../components/Board";
 import Sprints from "../components/Sprints";
 import Backlog from "../components/Backlog";
 import ItemModal from "../components/ItemModal";
+import Reports from "../components/Reports";
 
 export default function ProjectDetail() {
   const { id } = useParams();
@@ -155,6 +156,11 @@ export default function ProjectDetail() {
           myRole={myRole}
           sprints={sprints}
           onChange={refresh}
+        />
+        <Reports 
+          project={project} 
+          sprints={sprints} 
+          version={version} 
         />
         <Backlog
           project={project}

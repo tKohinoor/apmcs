@@ -3,6 +3,8 @@ import mongoose from "mongoose";
 import Project from "../models/Project.js";
 import WorkItem from "../models/WorkItem.js";
 import Comment from "../models/Comment.js";
+import { notifyProject } from "../sockets/io.js";
+import { recordSnapshots } from "../utils/snapshots.js";
 
 const UPDATABLE = [
   "title",
@@ -127,10 +129,12 @@ export async function createItem(req, res) {
       sprint: sprint || null,
       reporter: req.user._id,
     });
+    await recordSnapshots(item.sprint);
     await item.populate([
       { path: "assignee", select: "name" },
       { path: "epic", select: "title number" },
     ]);
+    notifyProject(req, "items", item._id);
     res.status(201).json({ item });
   } catch (err) {
     if (err.name === "ValidationError") {
@@ -187,14 +191,17 @@ export async function updateItem(req, res) {
     if (sprintProblem) return res.status(400).json({ message: sprintProblem });
   }
 
+  const previousSprint = item.sprint;
   item.set(updates);
 
   try {
     await item.save();
+    await recordSnapshots(previousSprint, item.sprint);
     await item.populate([
       { path: "assignee", select: "name" },
       { path: "epic", select: "title number" },
     ]);
+    notifyProject(req, "items", item._id);
     res.json({ item });
   } catch (err) {
     if (err.name === "ValidationError") {
@@ -222,5 +229,7 @@ export async function deleteItem(req, res) {
 
   await Comment.deleteMany({ item: item._id });
   await item.deleteOne();
+  await recordSnapshots(item.sprint);
+  notifyProject(req, "items", item._id);
   res.json({ message: "Item deleted" });
 }
