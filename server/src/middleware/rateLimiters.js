@@ -1,6 +1,11 @@
 import rateLimit from "express-rate-limit";
 
-const common = { standardHeaders: "draft-7", legacyHeaders: false };
+const common = {
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+  // Automated tests make many requests from one address
+  skip: () => process.env.NODE_ENV === "test",
+};
 
 // Everything under /api. Generous, because one page load makes about 9
 // requests and live updates trigger reloads. Several users on one college
