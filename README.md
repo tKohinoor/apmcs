@@ -295,8 +295,8 @@ Both hosts rebuild automatically when `main` is pushed.
 
 ## Team
 
-- Kohinoor Tiwari (https://github.com/tKohinoor)
-- Name 2
+- Kohinoor Tiwari 
+- Karan Singh 
 - Name 3
 - Name 4
 - Name 5
