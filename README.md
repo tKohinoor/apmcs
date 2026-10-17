@@ -297,6 +297,6 @@ Both hosts rebuild automatically when `main` is pushed.
 
 - Kohinoor Tiwari 
 - Karan Singh 
-- Name 3
+- Harsh Rawat
 - Name 4
 - Name 5
